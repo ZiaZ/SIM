@@ -1,0 +1,4 @@
+#the following files aren't necessary to be committed.
+*.mp4
+*.nc
+*.ovito

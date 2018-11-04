@@ -6,8 +6,6 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 import ase.io
-from ase import units
-from ase.md.langevin import Langevin
 from ase.io.netcdftrajectory import NetCDFTrajectory
 from ase.atoms import Atoms
 from ase.md import VelocityVerlet
@@ -46,9 +44,7 @@ f_dimer = np.array(f_dimer)
 f_num = np.array(f_num)
 assert abs(f_dimer - f_num).max() < 0.1
 
-#! crystal is created here, the length and height can be modified here as well
-#! edit 3N changed to different values to test
-crystal = triangular_lattice_slab(params.a, params.lm*params.N, params.N)
+crystal = triangular_lattice_slab(params.a, 3*params.N, params.N)
 calc.set_reference_crystal(crystal)
 crystal.set_calculator(calc)
 
@@ -153,26 +149,11 @@ c.set_calculator(calc)
 
 ase.io.write('crack_3.xyz', c, format='extxyz')
 
-#dyn = VelocityVerlet(c, params.dt, logfile=None)
-dyn = Langevin(c,params.dt,params.T*units.kB, 0.002)
+dyn = VelocityVerlet(c, params.dt, logfile=None)
 set_initial_velocities(dyn.atoms)
 
-
-#!simulation outputs numbered, avoids deleting exisiting results
-iterFile = open("simIteration.txt",'r+')
-iteration = int(iterFile.readlines()[0]) + 1
-iterFile.seek(0,0)
-iterFile.write(str(iteration))
-iterFile.close()
-
-#!Saving parameter values for each iteration of the simulation
-logFile = open(".simout/logs/log"+str(iteration)+".txt",'w')
-for p, value in params.p.iteritems():
-        logFile.write(p+" ==> "+str(value)+"\n")
-logFile.close
-
 crack_pos = []
-traj = NetCDFTrajectory('.simout/traj'+str(iteration)+'.nc', 'w', c)
+traj = NetCDFTrajectory('traj.nc', 'w', c)
 dyn.attach(traj.write, 10, dyn.atoms, arrays=['stokes', 'momenta'])
 dyn.attach(find_crack_tip, 10, dyn.atoms,
            dt=params.dt*10, store=True, results=crack_pos)
@@ -190,23 +171,12 @@ strain_atoms = ConstantStrainRate(dyn.atoms.info['OrigHeight'],
                                   delta_strain)
 dyn.attach(strain_atoms.apply_strain, 1, dyn.atoms)
 
-for i in range(50):
-    dyn.run(100)
-    if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
-        set_constraints(dyn.atoms, params.a)
-
-del dyn.observers[-1] # stop increasing the strain
-
 for i in range(1000):
     dyn.run(100)
     if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
         set_constraints(dyn.atoms, params.a)
 
-
 traj.close()
 
 time = 10.0*dyn.dt*np.arange(dyn.get_number_of_steps()/10)
 np.savetxt('crackpos.dat', np.c_[time, crack_pos])
-
-
-#test change
