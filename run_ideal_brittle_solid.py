@@ -124,7 +124,7 @@ left = c.positions[:, 0].min()
 right = c.positions[:, 0].max()
 
 crack_seed_length = 0.3*width
-strain_ramp_length = 5.0*params.a
+strain_ramp_length = 8.0*params.a # make this bigger until crack looks nicer
 delta_strain = params.strain_rate*params.dt
 
 # fix top and bottom rows, and setup Stokes damping mask
@@ -154,6 +154,7 @@ c.set_calculator(calc)
 ase.io.write('crack_3.xyz', c, format='extxyz')
 
 #dyn = VelocityVerlet(c, params.dt, logfile=None)
+#! replaced velcityVerlet with Lagevin to add temperature parameter
 dyn = Langevin(c,params.dt,params.T*units.kB, 0.002)
 set_initial_velocities(dyn.atoms)
 
