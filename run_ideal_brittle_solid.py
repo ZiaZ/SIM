@@ -13,12 +13,20 @@ from ase.atoms import Atoms
 from ase.md import VelocityVerlet
 from ase.optimize.fire import FIRE
 
-from matscipy.fracture_mechanics.idealbrittlesolid import (IdealBrittleSolid,
+# from matscipy.fracture_mechanics.idealbrittlesolid import (IdealBrittleSolid,
+#                                                            triangular_lattice_slab,
+#                                                            find_crack_tip,
+#                                                            set_initial_velocities,
+#                                                            set_constraints,
+#                                                            extend_strip)
+
+from matscipy_local.matscipy.fracture_mechanics.idealbrittlesolid import (IdealBrittleSolid,
                                                            triangular_lattice_slab,
                                                            find_crack_tip,
                                                            set_initial_velocities,
                                                            set_constraints,
                                                            extend_strip)
+
 
 from matscipy.fracture_mechanics.crack import (thin_strip_displacement_y,
                                                ConstantStrainRate)
@@ -175,6 +183,10 @@ logFile.close
 crack_pos = []
 traj = NetCDFTrajectory('.simout/traj'+str(iteration)+'.nc', 'w', c)
 dyn.attach(traj.write, 10, dyn.atoms, arrays=['stokes', 'momenta'])
+
+#! isolating crack tip_x for saving
+crack_tip_file2 = open('tip_x.txt','w')
+crack_tip_file2.close()
 dyn.attach(find_crack_tip, 10, dyn.atoms,
            dt=params.dt*10, store=True, results=crack_pos)
 
@@ -196,7 +208,7 @@ for i in range(50):
     if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
         set_constraints(dyn.atoms, params.a)
 
-del dyn.observers[-1] # stop increasing the strain
+#del dyn.observers[-1] # stop increasing the strain
 
 for i in range(1000):
     dyn.run(100)
@@ -210,4 +222,3 @@ time = 10.0*dyn.dt*np.arange(dyn.get_number_of_steps()/10)
 np.savetxt('crackpos.dat', np.c_[time, crack_pos])
 
 
-#test change

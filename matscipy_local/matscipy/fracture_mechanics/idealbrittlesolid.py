@@ -209,7 +209,7 @@ class IdealBrittleSolid(Calculator):
         return 0.25
 
 
-def find_crack_tip(atoms, dt=None, store=True, results=None):
+def find_crack_tip(atoms, dt=None, store=True, results=None,):
     """
     Return atom at the crack tip and its x-coordinate
 
@@ -250,6 +250,11 @@ def find_crack_tip(atoms, dt=None, store=True, results=None):
     strain = get_strain(atoms)
     eps_G = atoms.info['eps_G']
     print('tip_x: %.3f strain: %.4f delta: %.3f' % (tip_x, strain, strain/eps_G))
+    
+    #!saving tip_x to text file
+    tip_x_file = open('tip_x.txt','a')
+    tip_x_file.write(str(tip_x) + ',' + str(strain) +'\n')
+    tip_x_file.close()
 
     if store:
         atoms.info['tip_atom'] = tip_atom
