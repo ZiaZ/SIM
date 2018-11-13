@@ -1,7 +1,0 @@
-.cache
-.ipython
-GAP_LICENSE.md
-install.sh
-.bash_history
-docker_commands.txt
-*.csv
