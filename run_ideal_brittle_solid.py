@@ -33,6 +33,7 @@ from matscipy.fracture_mechanics.crack import (thin_strip_displacement_y,
 
 sys.path.insert(0, '.')
 import params
+import create_folder as cf
 
 calc = IdealBrittleSolid(rc=params.rc, k=params.k, a=params.a, beta=params.beta)
 
@@ -63,7 +64,7 @@ crystal.set_calculator(calc)
 e0 = crystal.get_potential_energy()
 l = crystal.cell[0,0]
 h = crystal.cell[1,1]
-print 'l=', l, 'h=', h
+print ('l=', l, 'h=', h)
 
 # compute surface (Griffith) energy
 b = crystal.copy()
@@ -74,7 +75,7 @@ b.positions[y > h/2, 1] += shift
 b.cell[1, 1] += shift
 e1 = b.get_potential_energy()
 E_G = (e1 - e0)/l
-print 'Griffith energy', E_G
+print ('Griffith energy', E_G)
 
 # compute Griffith strain
 eps = 0.0   # initial strain is zero
@@ -97,7 +98,7 @@ energy = np.array(energy)
 eps_of_e = interp1d(energy, strain, kind='linear')
 eps_G = eps_of_e(E_G)
 
-print 'Griffith strain', eps_G
+print ('Griffith strain', eps_G)
 
 c = crystal.copy()
 c.info['E_G'] = E_G
@@ -131,7 +132,7 @@ bottom = c.positions[:, 1].min()
 left = c.positions[:, 0].min()
 right = c.positions[:, 0].max()
 
-crack_seed_length = 0.3*width
+crack_seed_length = 0.2*width
 strain_ramp_length = 8.0*params.a # make this bigger until crack looks nicer
 delta_strain = params.strain_rate*params.dt
 
@@ -155,17 +156,22 @@ ase.io.write('crack_2.xyz', c, format='extxyz')
 
 c.set_calculator(calc)
 
+cl, cs, cr = calc.get_wave_speeds(c)
+
+print("rayleigh speed = %f" %cr)
+
 # relax initial structure
 #opt = FIRE(c)
 #opt.run(fmax=1e-3)
 
 ase.io.write('crack_3.xyz', c, format='extxyz')
 
-#dyn = VelocityVerlet(c, params.dt, logfile=None)
+dyn = VelocityVerlet(c, params.dt, logfile=None)
 #! replaced velcityVerlet with Lagevin to add temperature parameter
-dyn = Langevin(c,params.dt,params.T*units.kB, 0.002)
-set_initial_velocities(dyn.atoms)
+# dyn = Langevin(c,params.dt,params.T*units.kB, 0.002)
+# set_initial_velocities(dyn.atoms)
 
+dyn.atoms.rattle(1e-3) # non-deterministic simulations - adjust to suit
 
 #!simulation outputs numbered, avoids deleting exisiting results
 iterFile = open("simIteration.txt",'r+')
@@ -174,51 +180,55 @@ iterFile.seek(0,0)
 iterFile.write(str(iteration))
 iterFile.close()
 
+dir = "./.simout/sim_"+str(iteration)+"_"+str(params.keep_test).lower()+"_"+params.desc+"/"
+cf.createFolder(dir)
+
 #!Saving parameter values for each iteration of the simulation
-logFile = open(".simout/logs/log"+str(iteration)+".txt",'w')
+logFile = open(dir+"params_log.txt",'w')
 for p, value in params.p.iteritems():
         logFile.write(p+" ==> "+str(value)+"\n")
 logFile.close
 
 crack_pos = []
-traj = NetCDFTrajectory('.simout/traj'+str(iteration)+'.nc', 'w', c)
+traj = NetCDFTrajectory(dir+'traj'+str(iteration)+'.nc', 'w', c)
 dyn.attach(traj.write, 10, dyn.atoms, arrays=['stokes', 'momenta'])
 
-#! isolating crack tip_x for saving
-crack_tip_file2 = open('tip_x.txt','w')
-crack_tip_file2.close()
-dyn.attach(find_crack_tip, 10, dyn.atoms,
+# #! isolating crack tip_x for saving
+# crack_tip_file2 = open(dir+'tip_x.txt','w')
+# crack_tip_file2.close()
+dyn.attach(find_crack_tip, 10, dyn.atoms, location = dir,
            dt=params.dt*10, store=True, results=crack_pos)
 
 # run for 2000 time steps to reach steady state at initial load
-for i in range(20):
-    dyn.run(100)
-    if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
-        set_constraints(dyn.atoms, params.a)
+# for i in range(10):
+#     dyn.run(250)
+#     if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
+#         set_constraints(dyn.atoms, params.a)
 
 # start decreasing strain
 #set_constraints(dyn.atoms, params.a, delta_strain=delta_strain)
 
-strain_atoms = ConstantStrainRate(dyn.atoms.info['OrigHeight'],
-                                  delta_strain)
-dyn.attach(strain_atoms.apply_strain, 1, dyn.atoms)
+# strain_atoms = ConstantStrainRate(dyn.atoms.info['OrigHeight'],
+#                                   delta_strain)
+# dyn.attach(strain_atoms.apply_strain, 1, dyn. atoms   )
 
-for i in range(50):
-    dyn.run(100)
-    if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
-        set_constraints(dyn.atoms, params.a)
+# for i in range(50):
+#     dyn.run(100)
+#     if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
+#         set_constraints(dyn.atoms, params.a)
 
-#del dyn.observers[-1] # stop increasing the strain
+# #cleardel dyn.observers[-1] # stop increasing the strain
 
-for i in range(1000):
-    dyn.run(100)
-    if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
-        set_constraints(dyn.atoms, params.a)
+# for i in range(1000):
+#     dyn.run(100)
+#     if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
+#         set_constraints(dyn.atoms, params.a)
 
+dyn.run(20000)
 
 traj.close()
 
 time = 10.0*dyn.dt*np.arange(dyn.get_number_of_steps()/10)
-np.savetxt('crackpos.dat', np.c_[time, crack_pos])
+np.savetxt(dir+'crackpos.txt', np.c_[time, crack_pos])
 
 
