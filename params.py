@@ -22,7 +22,10 @@ desc = "delta_1.55-1.6"
 
 # this makes it easier to output parameters to a log file.
  
-p = {
+
+
+def compose_params():
+    p = {
     "N" : N,
     "M" : M,
     "rc" : rc,
@@ -35,4 +38,8 @@ p = {
     "strain_rate" : strain_rate,
     "lm" : lm,
     "T" : T,
-}
+    "Seed lm" : seed_lm,
+    "descrition": desc
+    }
+    
+    return p

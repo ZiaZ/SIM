@@ -13,7 +13,9 @@ def get_xy(sim_index = 125):
     x_pos = [0]
     for i in range(len(y_pos) - 1):
         x_pos.append(round((x_pos[-1]+0.025), 3))
-    
+    if (sim_index == 133):
+        plt.plot(x_pos,y_pos, 'or')
+        plt.show()
     return [x_pos, y_pos]
 
 
@@ -58,10 +60,9 @@ plt.plot(x_pos_D, 5*(1 - 1/x_pos_D**2),'g-')
 
 plt.xticks(np.arange(min(x_pos_D) - 0.1, max(x_pos_D) + 0.1, 0.05))
 # plt.yticks(np.arange(min(y_pos_D), max(y_pos_D), 0.2))
-plt.yticks(np.arange(0, max(y_pos_D) + 0.5, 0.2))
+plt.yticks(np.arange(-1, max(y_pos_D) + 0.5, 0.2))
 plt.errorbar(x_pos_D,y_pos_D,yerr=errors*100, fmt="g*")
-plt.xlim(1.4,2.1)
-# plt.ylim(0,4)
+plt.xlim(1.3,2.1)
+plt.ylim(-1,max(y_pos_D) + 0.5)
 plt.grid()
 plt.show()
-print(errors)

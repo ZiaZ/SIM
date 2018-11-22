@@ -4,7 +4,6 @@ import sys
 
 import numpy as np
 from scipy.interpolate import interp1d
-
 import ase.io
 from ase import units
 from ase.md.langevin import Langevin
@@ -185,7 +184,7 @@ cf.createFolder(dir)
 
 #!Saving parameter values for each iteration of the simulation
 logFile = open(dir+"params_log.txt",'w')
-for p, value in params.p.iteritems():
+for p, value in params.compose_params().iteritems():
         logFile.write(p+" ==> "+str(value)+"\n")
 logFile.close
 
