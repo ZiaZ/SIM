@@ -14,13 +14,15 @@ start_time = time.time()
 #-------------------Delta Section Sim -----------------
 
 #-----------------Temperature Section Sim---------------
-
-temps = [-50,0,10,25,35,45,65,85,100,130]
-temps_kelvin = [ el+273 for el in temps]
+deltas = [1.55,1.7,2.0]
 params.keep_test = True
-params.desc = 'temperature'
-for temp in temps_kelvin:
-    params.T = temp
+for delta in deltas:
+    temps = [-50,0,10,25,35,45,65,85,100,130]
+    temps_kelvin = [ el+273 for el in temps]
+    params.delta = delta
+    params.desc = ' (T='+str()+') (Δ='+str()+')'
+    for temp in temps_kelvin:
+        params.T = temp
     ribs.ribs(params, frame_count = 1200)
 #-----------------Temperature Section Sim---------------
     
