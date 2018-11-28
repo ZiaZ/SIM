@@ -13,9 +13,6 @@ def get_xy(sim_index = 125):
     x_pos = [0]
     for i in range(len(y_pos) - 1):
         x_pos.append(round((x_pos[-1]+0.025), 3))
-    if (sim_index == 133):
-        plt.plot(x_pos,y_pos, 'or')
-        plt.show()
     return [x_pos, y_pos]
 
 
@@ -26,9 +23,7 @@ y_pos_D = []
 errors =  []
 sim_range = []
 
-
-
-# y_pos_D /= 0.398101
+cr = 0.398101*(1/units.fs)
 
 with open(".simout/DandSimNo.csv",'r') as file:
     rows = csv.reader(file)
@@ -43,26 +38,27 @@ for i in sim_range:
     y_pos_D.append(m)
     errors.append(std_err)
 
+del(x_pos_D[:4]); del(x_pos_D[-13:])
+del(y_pos_D[:4]); del(y_pos_D[-13:])
+
 errors = np.array(errors)
 x_pos_D = np.array(x_pos_D)
 y_pos_D = np.array(y_pos_D)
-
-# del(x_pos_D[:4]); del(x_pos_D[-13:])
-# del(y_pos_D[:4]); del(y_pos_D[-13:])
+y_pos_D /= cr
 
 plt.xlabel('Strain (Δ)')
-plt.ylabel('Crack Velocity')
+plt.ylabel('Crack Velocity (V/Cr)')
 plt.title('Relationship of crack speed against strain.')
 plt.plot(x_pos_D, y_pos_D,'bo',x_pos_D, y_pos_D,'r')
 
-plt.plot(x_pos_D, 5*(1 - 1/x_pos_D**2),'g-')
+plt.plot(x_pos_D, 1.2*(1 - 1/x_pos_D**2),'g-')
 
 
-plt.xticks(np.arange(min(x_pos_D) - 0.1, max(x_pos_D) + 0.1, 0.05))
+plt.xticks(np.arange(min(x_pos_D) - 0.3, max(x_pos_D) + 0.1, 0.05))
 # plt.yticks(np.arange(min(y_pos_D), max(y_pos_D), 0.2))
-plt.yticks(np.arange(-1, max(y_pos_D) + 0.5, 0.2))
-plt.errorbar(x_pos_D,y_pos_D,yerr=errors*100, fmt="g*")
-plt.xlim(1.3,2.1)
-plt.ylim(-1,max(y_pos_D) + 0.5)
+plt.yticks(np.arange(-1, max(y_pos_D) + 0.5, 0.1))
+# plt.errorbar(x_pos_D,y_pos_D,yerr=errors*100, fmt="g*")
+plt.xlim(min(x_pos_D) - 0.3,2.2)
+plt.ylim(0,max(y_pos_D)+0.1)
 plt.grid()
 plt.show()

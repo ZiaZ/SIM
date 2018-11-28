@@ -7,6 +7,7 @@ from ase.calculators.calculator import Calculator
 from ase.constraints import FixAtoms
 from ase.geometry import cellpar_to_cell
 
+import ase.units as units
 from matscipy.neighbours import neighbour_list
 from matscipy.fracture_mechanics.crack import (ConstantStrainRate,
                                                get_strain)
@@ -232,6 +233,13 @@ def find_crack_tip(atoms, location = './', dt=None, store=True, results=None,):
     height = y.max() - y.min()
     old_tip_x = atoms.info.get('tip_x', left + 0.3*width)
 
+    """Function to print the potential, kinetic and total energy"""
+    epot = atoms.get_potential_energy() / len(atoms)
+    ekin = atoms.get_kinetic_energy() / len(atoms)
+    # print('Energy per atom: Epot = %.3feV  Ekin = %.3feV (T=%3.0fK)  '
+    #       'Etot = %.3feV' % (epot, ekin, ekin / (1.5 * units.kB), epot + ekin))
+
+    T = ekin / (1.5 * units.kB)
     # crack cannot have advanced more than c_R*dt
     if dt is not None:
         cl, ct, cR = calc.get_wave_speeds(atoms)
@@ -249,7 +257,7 @@ def find_crack_tip(atoms, location = './', dt=None, store=True, results=None,):
 
     strain = get_strain(atoms)
     eps_G = atoms.info['eps_G']
-    print('tip_x: %.3f strain: %.4f delta: %.3f' % (tip_x, strain, strain/eps_G))
+    print('tip_x: %.3f T: %d strain: %.4f delta: %.3f' % (tip_x, T, strain, strain/eps_G))
     
     #!saving tip_x to text file 
     tip_x_file = open(location+'tip_x.txt','a')

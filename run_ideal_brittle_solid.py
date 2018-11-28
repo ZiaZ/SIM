@@ -10,6 +10,7 @@ from ase.md.langevin import Langevin
 from ase.io.netcdftrajectory import NetCDFTrajectory
 from ase.atoms import Atoms
 from ase.md import VelocityVerlet
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution as mbd
 from ase.optimize.fire import FIRE
 
 # from matscipy.fracture_mechanics.idealbrittlesolid import (IdealBrittleSolid,
@@ -167,12 +168,15 @@ def ribs(params, frame_count = 1000):
 
        ase.io.write('crack_3.xyz', c, format='extxyz')
 
-       dyn = VelocityVerlet(c, params.dt, logfile=None)
        #! replaced velcityVerlet with Lagevin to add temperature parameter
-       # dyn = Langevin(c,params.dt,params.T*units.kB, 0.002)
-       # set_initial_velocities(dyn.atoms)
+       if params.T == 0:
+              set_initial_velocities(dyn.atoms)
+              dyn = VelocityVerlet(c, params.dt, logfile=None)
+       else: 
+              mbd(c, 2*params.T * units.kB)
+              dyn = Langevin(c,params.dt,params.T*units.kB, 0.002)
 
-       dyn.atoms.rattle(1e-3) # non-deterministic simulations - adjust to suit
+       #dyn.atoms.rattle(1e-3) # non-deterministic simulations - adjust to suit
 
        #!simulation outputs numbered, avoids deleting exisiting results
        iterFile = open("simIteration.txt",'r+')
@@ -232,4 +236,9 @@ def ribs(params, frame_count = 1000):
        time = 10.0*dyn.dt*np.arange(dyn.get_number_of_steps()/10)
        np.savetxt(dir+'crackpos.txt', np.c_[time, crack_pos])
 
-
+if __name__ == '__main__':
+       import params
+       params.T = 50+273
+       params.k = 0.5
+       params.delta = 2
+       ribs(params, frame_count = 500)
