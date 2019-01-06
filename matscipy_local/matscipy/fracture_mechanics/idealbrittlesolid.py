@@ -210,7 +210,7 @@ class IdealBrittleSolid(Calculator):
         return 0.25
 
 
-def find_crack_tip(atoms, location = './', dt=None, store=True, results=None,):
+def find_crack_tip(atoms, coord = None, d=None, tipxfile = None, cout=None, dt=None, store=True, results=None, siv=False):
     """
     Return atom at the crack tip and its x-coordinate
 
@@ -243,7 +243,8 @@ def find_crack_tip(atoms, location = './', dt=None, store=True, results=None,):
     # crack cannot have advanced more than c_R*dt
     if dt is not None:
         cl, ct, cR = calc.get_wave_speeds(atoms)
-        tip_max_x = old_tip_x + 10.0*cR*dt # FIXME definition of cR seems wrong, shouldn't need factor of 10 here...
+        #tip_max_x = old_tip_x + 10.0*cR*dt # FIXME definition of cR seems wrong, shouldn't need factor of 10 here...
+        tip_max_x = old_tip_x + cR*dt # FIXME unit conversion included now
     else:
         tip_max_x = left + 0.8*width
 
@@ -254,15 +255,23 @@ def find_crack_tip(atoms, location = './', dt=None, store=True, results=None,):
     index = atoms.positions[broken, 0].argmax()
     tip_atom = broken.nonzero()[0][index]
     tip_x = atoms.positions[tip_atom, 0]
+    tip_y = atoms.positions[tip_atom, 1]
+    coord.append([tip_x,tip_y])
+    #! d is distance
+    if len(coord) >= 2:
+        d.append(((coord[-1][0]-coord[-2][0])**2+(coord[-1][1]-coord[-2][1])**2)**(0.5))
 
+    total_d = sum(d)
     strain = get_strain(atoms)
     eps_G = atoms.info['eps_G']
-    print('tip_x: %.3f T: %d strain: %.4f delta: %.3f' % (tip_x, T, strain, strain/eps_G))
-    
-    #!saving tip_x to text file 
-    tip_x_file = open(location+'tip_x.txt','a')
-    tip_x_file.write(str(tip_x) + ',' + str(strain) +'\n')
-    tip_x_file.close()
+    print('tip_x: %.3f tip_y: %.1f d: %.2f T: %.1f strain: %.4f delta: %.3f' % (tip_x, tip_y, total_d , T, strain, strain/eps_G))
+    # print(atoms.get_temperature())
+    #! No need to write anything if set_initial_velocity() calls this function
+    if not siv:
+        #!saving tip_x to text file 
+        tipxfile.write(str(tip_x) + ',' + str(strain) +'\n')
+        #!saving console output
+        cout.write('tip_x: %.3f tip_y: %.3f d: %.3f T: %d strain: %.4f delta: %.3f \n' % (tip_x, tip_y, total_d , T, strain, strain/eps_G))
 
     if store:
         atoms.info['tip_atom'] = tip_atom
@@ -278,7 +287,7 @@ def set_initial_velocities(c):
     """
     Initialise a dynamical state by kicking some atoms behind tip
     """
-    tip_atom, tip_x, broken = find_crack_tip(c, store=False)
+    tip_atom, tip_x, broken = find_crack_tip(c, store=False, siv=True)
 
     init_atoms = broken.nonzero()[0][c.positions[broken, 0].argsort()[-8:]]
     upper = list(init_atoms[c.positions[init_atoms, 1] > 0])

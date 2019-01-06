@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d
 import ase.io
 from ase import units
 from ase.md.langevin import Langevin
+from ase.md.nvtberendsen import NVTBerendsen
 from ase.io.netcdftrajectory import NetCDFTrajectory
 from ase.atoms import Atoms
 from ase.md import VelocityVerlet
@@ -66,7 +67,7 @@ def ribs(params, frame_count = 1000):
        e0 = crystal.get_potential_energy()
        l = crystal.cell[0,0]
        h = crystal.cell[1,1]
-       print ('l=', l, 'h=', h)
+       print('l=', l, 'h=', h)
 
        # compute surface (Griffith) energy
        b = crystal.copy()
@@ -163,18 +164,25 @@ def ribs(params, frame_count = 1000):
        print("rayleigh speed = %f" %cr)
 
        # relax initial structure
-       #opt = FIRE(c)
-       #opt.run(fmax=1e-3)
+       # opt = FIRE(c)
+       # opt.run(fmax=1e-3)
 
        ase.io.write('crack_3.xyz', c, format='extxyz')
 
+       #! this is a vertical gap kept for reference
+       # del c[[i for i in np.arange(2255,2265,1)]]
+       # del c[1860]
+       # del c[[i for i in np.arange(2258,2263,1)]]
+
        #! replaced velcityVerlet with Lagevin to add temperature parameter
-       if params.T == 0:
-              set_initial_velocities(dyn.atoms)
-              dyn = VelocityVerlet(c, params.dt, logfile=None)
+       if params.v_verlet:
+              dyn = VelocityVerlet(c, params.dt * units.fs, logfile=None)
+              # set_initial_velocities(dyn.atoms)
        else: 
-              mbd(c, 2*params.T * units.kB)
-              dyn = Langevin(c,params.dt,params.T*units.kB, 0.002)
+              print("Using NVT!")
+              # mbd(c, 20 * units.kB, force_temp = True)
+              # dyn = Langevin(c,params.dt*units.fs,params.T*units.kB, 5)
+              dyn = NVTBerendsen(c, params.dt * units.fs, params.T, taut=0.5*1000*units.fs)
 
        #dyn.atoms.rattle(1e-3) # non-deterministic simulations - adjust to suit
 
@@ -193,15 +201,22 @@ def ribs(params, frame_count = 1000):
        for p, value in params.compose_params().iteritems():
               logFile.write(p+" ==> "+str(value)+"\n")
        logFile.close
-
        crack_pos = []
-       traj = NetCDFTrajectory(dir+'traj'+str(iteration)+'.nc', 'w', c)
-       dyn.attach(traj.write, 10, dyn.atoms, arrays=['stokes', 'momenta'])
+       if params.keep_test:
+              traj = NetCDFTrajectory(dir+'traj'+str(iteration)+'.nc', 'w', c)
+              dyn.attach(traj.write, 10, dyn.atoms, arrays=['stokes', 'momenta'])
 
        # #! isolating crack tip_x for saving
        # crack_tip_file2 = open(dir+'tip_x.txt','w')
        # crack_tip_file2.close()
-       dyn.attach(find_crack_tip, 10, dyn.atoms, location = dir,
+       tip_x_file = open(dir+'tip_x.txt','a')
+       console_output = open(dir+'console_output.txt','a')
+       coord_file = open(dir+'coordinates.csv','a')
+
+       coordinates = []
+       distances = []
+
+       dyn.attach(find_crack_tip, 10, dyn.atoms, tipxfile = tip_x_file, cout=console_output, coord=coordinates, d=distances,
               dt=params.dt*10, store=True, results=crack_pos)
 
        # run for 2000 time steps to reach steady state at initial load
@@ -228,17 +243,30 @@ def ribs(params, frame_count = 1000):
        #     dyn.run(100)
        #     if extend_strip(dyn.atoms, params.a, params.N, params.M, params.vacuum):
        #         set_constraints(dyn.atoms, params.a)
+       
+       
+       dyn.run(int(1*frame_count)*10+10)
 
-       dyn.run(frame_count*10+10)
+       # print("\n\n\n\n\n -----Adding Temperature------\n\n\n\n\n")
+       # # mbd(c, 2*params.T * units.kB, force_temp = True)
+       # dyn.set_temperature(params.T*units.kB)
+       # dyn.run(int(0.5*frame_count)*10+10)
+       for c in coordinates:
+              coord_file.write(str(c[0])+','+str(c[1])+'\n')
+       coord_file.close()
 
-       traj.close()
-
-       time = 10.0*dyn.dt*np.arange(dyn.get_number_of_steps()/10)
-       np.savetxt(dir+'crackpos.txt', np.c_[time, crack_pos])
+       if params.keep_test:
+              traj.close()
+       tip_x_file.close()
+       console_output.close()
+       # time = 10.0*dyn.dt*np.arange(dyn.get_number_of_steps()/10)
+       # np.savetxt(dir+'crackpos.txt', np.c_[time, crack_pos])
 
 if __name__ == '__main__':
        import params
-       params.T = 50+273
+       params.keep_test = True
+       params.delta = 1.6
        params.k = 0.5
-       params.delta = 2
-       ribs(params, frame_count = 500)
+       params.v_verlet = False
+       params.desc = "gaps"
+       ribs(params, frame_count = 300)
