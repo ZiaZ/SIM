@@ -1,3 +1,4 @@
+#coding=utf-8
 #!/usr/bin/env python
 
 import sys
@@ -33,7 +34,8 @@ from matscipy.fracture_mechanics.crack import (thin_strip_displacement_y,
                                                ConstantStrainRate)
 
 sys.path.insert(0, '.')
-# import params
+
+import modifiers
 import create_folder as cf
 
 def ribs(params, frame_count = 1000):
@@ -169,23 +171,61 @@ def ribs(params, frame_count = 1000):
 
        ase.io.write('crack_3.xyz', c, format='extxyz')
 
-       #! this is a vertical gap kept for reference
-       # del c[[i for i in np.arange(2255,2265,1)]]
-       # del c[1860]
-       # del c[[i for i in np.arange(2253,2266,1)]]
-       hc = 1860
-       todel = np.sqrt((c.positions[0,:]-c.positions[:hc])**2+(c.positions[1,:]-c.positions[:hc])**2) <= 4
-       # print(r[1000])
-       # print(todel.shape)
-       
-       # print(c[40])
-       # print(c[40].shape)
-       # print(c.get_positions()[6399,1])
-       # print(c.positions[:hc])
-       # print("space")
-       # print((c.positions[0,:]-c.positions[:hc]))
-       # del(c.positions[todel])
-       # return
+       #Atomic Void Simulations ""
+       void = "😵"
+       #------------------------------------------------------------------------------
+       #the following lines of code were written to convert 1D positions into a 2D array
+       #so as to make manipulation of slab easier
+       if True:
+              L = params.N*params.lm
+              H = params.N*2
+              #this reference code is for 160x40 slab
+              #in steps of 40 i.e. the height, create a list upto the length of slab
+              #row0 = range(0,6400,40)
+              row0 = range(0,len(c),H)
+              #the 2D array will be held in slab
+              slab = [] 
+              for col in range(H):
+                     row = []
+                     for r in row0:
+                            i = col + r
+                            row.append(c.positions[i])
+                     slab.append(row)
+
+              slab = np.array(slab)
+              #all items in the array reversed, needed because the salb is built from bottom left up
+              #in other words, reflected in x axis
+              slab = slab[::-1]
+              # print(slab[0])
+              
+              #around a max of [0.3--1.7] recommended
+              mid_offset = 1.0
+              #y offset is a fraction of distance from the end of the slab
+              y_offset = 0.5
+              rad = 3
+              slab[modifiers.mask(h=H,w=L, center=[int(L*y_offset),int((H/2 - 1)*mid_offset)], radius=rad)] = 0
+              #reversed the slab back again here
+              slab = slab[::-1]
+              # # this is a useful text-array representation of the slab, for debugging purposes
+              # mtext = open('masktest.txt','w')
+              # for row in slab:
+              #        mtext.write(str(row).replace("\n",",")+"\n")
+              # mtext.close
+              
+              slab_1d = []
+              for col in range(L):
+                     for row in range(H):
+                            slab_1d.append(slab[row,col])
+              slab_1d = np.array(slab_1d)
+              
+              todel = []
+              for i in range(len(c)):
+                     if slab_1d[i][2] == 0:
+                            todel.append(i)
+              print(todel)
+              del c[todel]
+              # return
+       #-------------------------------------------------------------------------------
        #! replaced velcityVerlet with Lagevin to add temperature parameter
        if params.v_verlet:
               dyn = VelocityVerlet(c, params.dt * units.fs, logfile=None)
@@ -201,6 +241,8 @@ def ribs(params, frame_count = 1000):
        #!simulation outputs numbered, avoids deleting exisiting results
        iterFile = open("simIteration.txt",'r+')
        iteration = int(iterFile.readlines()[0]) + 1
+       if params.overwrite_output:
+              iteration -= 1
        iterFile.seek(0,0)
        iterFile.write(str(iteration))
        iterFile.close()
@@ -277,8 +319,8 @@ def ribs(params, frame_count = 1000):
 if __name__ == '__main__':
        import params
        params.keep_test = True
-       params.delta = 1.6
+       params.delta = 2
        params.k = 0.5
        params.v_verlet = True
        params.desc = "hole_test"
-       ribs(params, frame_count = 300)
+       ribs(params, frame_count = 2000)

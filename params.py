@@ -22,6 +22,7 @@ v_verlet = True
 keep_test = False #save output traj?
 desc = "test"
 
+overwrite_output = True
 # this makes it easier to output parameters to a log file.
 def compose_params():
     p = {
