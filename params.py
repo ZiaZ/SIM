@@ -14,7 +14,7 @@ dt = 0.25451264177891814  #time step in fm (femto seconds)
 beta = 0.05  #damping factor
 strain_rate = 1e-6
 
-lm = 5 # length multiplier
+lm = 8 # length multiplier
 T = 0 #Temperature in Kelvin
 seed_lm = 0.2 #seed length as a fraction of the whole length
 v_verlet = True

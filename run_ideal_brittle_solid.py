@@ -172,8 +172,20 @@ def ribs(params, frame_count = 1000):
        #! this is a vertical gap kept for reference
        # del c[[i for i in np.arange(2255,2265,1)]]
        # del c[1860]
-       # del c[[i for i in np.arange(2258,2263,1)]]
-
+       # del c[[i for i in np.arange(2253,2266,1)]]
+       hc = 1860
+       todel = np.sqrt((c.positions[0,:]-c.positions[:hc])**2+(c.positions[1,:]-c.positions[:hc])**2) <= 4
+       # print(r[1000])
+       # print(todel.shape)
+       
+       # print(c[40])
+       # print(c[40].shape)
+       # print(c.get_positions()[6399,1])
+       # print(c.positions[:hc])
+       # print("space")
+       # print((c.positions[0,:]-c.positions[:hc]))
+       # del(c.positions[todel])
+       # return
        #! replaced velcityVerlet with Lagevin to add temperature parameter
        if params.v_verlet:
               dyn = VelocityVerlet(c, params.dt * units.fs, logfile=None)
@@ -267,6 +279,6 @@ if __name__ == '__main__':
        params.keep_test = True
        params.delta = 1.6
        params.k = 0.5
-       params.v_verlet = False
-       params.desc = "gaps"
+       params.v_verlet = True
+       params.desc = "hole_test"
        ribs(params, frame_count = 300)
