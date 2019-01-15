@@ -19,7 +19,7 @@ T = 0 #Temperature in Kelvin
 seed_lm = 0.2 #seed length as a fraction of the whole length
 v_verlet = True
 
-keep_test = False #save output traj?
+keep_test = True #save output traj?
 desc = "test"
 
 overwrite_output = True

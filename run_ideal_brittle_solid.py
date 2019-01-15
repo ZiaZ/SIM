@@ -37,8 +37,9 @@ sys.path.insert(0, '.')
 
 import modifiers
 import create_folder as cf
+import random as rand
 
-def ribs(params, frame_count = 1000):
+def ribs(params, voidcount, voidrad, frame_count = 1000):
        
        calc = IdealBrittleSolid(rc=params.rc, k=params.k, a=params.a, beta=params.beta)
 
@@ -170,15 +171,22 @@ def ribs(params, frame_count = 1000):
        # opt.run(fmax=1e-3)
 
        ase.io.write('crack_3.xyz', c, format='extxyz')
-
-       #Atomic Void Simulations ""
-       void = "😵"
-       #------------------------------------------------------------------------------
+       
+       #length and height of the slab is defined here
+       L = params.N*params.lm
+       H = params.N*2
+       #Atomic Void Simulations 
+       #😵------------------------------------------------------------------------------
        #the following lines of code were written to convert 1D positions into a 2D array
        #so as to make manipulation of slab easier
        if True:
-              L = params.N*params.lm
-              H = params.N*2
+              #void parameters are defined here. 
+              #around a max of [0.3--1.7] recommended
+              y_offset = 0.1
+              #y offset is a fraction of distance from the end of the slab
+              x_offset = 0.4
+              rad = voidrad
+
               #this reference code is for 160x40 slab
               #in steps of 40 i.e. the height, create a list upto the length of slab
               #row0 = range(0,6400,40)
@@ -198,12 +206,14 @@ def ribs(params, frame_count = 1000):
               slab = slab[::-1]
               # print(slab[0])
               
-              #around a max of [0.3--1.7] recommended
-              mid_offset = 1.0
-              #y offset is a fraction of distance from the end of the slab
-              y_offset = 0.5
-              rad = 3
-              slab[modifiers.mask(h=H,w=L, center=[int(L*y_offset),int((H/2 - 1)*mid_offset)], radius=rad)] = 0
+              # slab[modifiers.mask(h=H,w=L, center=[int(L*x_offset),int((H - 1)*y_offset)], radius=rad)] = 0
+
+              #multiple voids if need be
+              if True:
+                     for i in range(voidcount):
+                            y_offset = rand.uniform(0.1,0.9)
+                            x_offset = rand.uniform(0.3,0.95)
+                            slab[modifiers.mask(h=H,w=L, center=[int(L*x_offset),int((H - 1)*y_offset)], radius=rad)] = 0
               #reversed the slab back again here
               slab = slab[::-1]
               # # this is a useful text-array representation of the slab, for debugging purposes
@@ -225,7 +235,18 @@ def ribs(params, frame_count = 1000):
               print(todel)
               del c[todel]
               # return
+       #End of Void Simulation
        #-------------------------------------------------------------------------------
+
+       #Grain Boundary Simulations
+       #-------------------------------------------------------------------------------
+       if False:
+              hi =2
+
+       #-------------------------------------------------------------------------------
+
+
+
        #! replaced velcityVerlet with Lagevin to add temperature parameter
        if params.v_verlet:
               dyn = VelocityVerlet(c, params.dt * units.fs, logfile=None)
@@ -247,7 +268,7 @@ def ribs(params, frame_count = 1000):
        iterFile.write(str(iteration))
        iterFile.close()
 
-       dir = "./.simout/sim_"+str(iteration)+"_"+str(params.keep_test).lower()+"_"+params.desc+"/"
+       dir = "./.simout/void/sim_"+str(iteration)+"_"+str(params.keep_test).lower()+"_"+params.desc+"/"
        cf.createFolder(dir)
 
        #!Saving parameter values for each iteration of the simulation
@@ -318,9 +339,27 @@ def ribs(params, frame_count = 1000):
 
 if __name__ == '__main__':
        import params
-       params.keep_test = True
+       params.overwrite_output = False
        params.delta = 2
        params.k = 0.5
+       params.lm = 8
        params.v_verlet = True
-       params.desc = "hole_test"
-       ribs(params, frame_count = 2000)
+       # params.desc = "MultipleVoidsPrep"
+
+       rand_voids = [10, 20, 30, 40]
+       rand_voids_r1p5 = [5,10,15]
+       rand_voids_r2 = [5,10,15]
+       rand_voids_r3 = [3,6,9]
+       for void_count in rand_voids:
+              params.desc = "MultipleVoids_R1_"+str(void_count)
+              ribs(params,void_count,0.9,frame_count=1500)
+       for void_count in rand_voids_r1p5:
+              params.desc = "MultipleVoids_R1.5_"+str(void_count)
+              ribs(params,void_count,1.5,frame_count=1500)
+       for void_count in rand_voids_r2:
+              params.desc = "MultipleVoids_R2_"+str(void_count)
+              ribs(params,void_count,2,frame_count=1500)
+       for void_count in rand_voids_r3:
+              params.desc = "MultipleVoids_R3_"+str(void_count)
+              ribs(params,void_count,3,frame_count=1500)
+       # ribs(params, frame_count = 1500)

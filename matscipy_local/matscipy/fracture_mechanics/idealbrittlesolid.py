@@ -264,7 +264,7 @@ def find_crack_tip(atoms, coord = None, d=None, tipxfile = None, cout=None, dt=N
     total_d = sum(d)
     strain = get_strain(atoms)
     eps_G = atoms.info['eps_G']
-    print('tip_x: %.3f tip_y: %.1f d: %.2f T: %.1f strain: %.4f delta: %.3f' % (tip_x, tip_y, total_d , T, strain, strain/eps_G))
+    print('tip_x: %.3f tip_y: %.0f d: %.2f T: %.1f strain: %.4f delta: %.3f' % (tip_x, tip_y, total_d , T, strain, strain/eps_G))
     # print(atoms.get_temperature())
     #! No need to write anything if set_initial_velocity() calls this function
     if not siv:
